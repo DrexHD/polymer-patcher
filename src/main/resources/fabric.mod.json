@@ -1,0 +1,30 @@
+{
+	"schemaVersion": 1,
+	"id": "polymer-patcher",
+	"version": "${version}",
+	"name": "polymer-patcher",
+	"description": "Making minecraft mods compatible with vanilla clients",
+	"authors": [
+		"Drex"
+	],
+	"license": "LGPLv3",
+	"icon": "assets/polymer-patcher/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"server": [
+			"me.drex.polymerpatcher.PolymerPatcher"
+		]
+	},
+	"mixins": [
+		{
+			"config": "polymer-patcher.mixins.json",
+			"environment": "server"
+		}
+	],
+	"accessWidener": "polymer-patcher.classtweaker",
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
