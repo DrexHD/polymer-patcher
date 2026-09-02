@@ -22,6 +22,7 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.state.BoatRenderState;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.state.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
@@ -39,6 +40,7 @@ import org.joml.Matrix4f;
 import java.util.*;
 
 public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity, RenderState extends EntityRenderState, Model extends EntityModel<? super RenderState>> extends ElementHolder {
+    private static final CameraRenderState DEFAULT_CAMERA_STATE = new CameraRenderState();
     public final InteractionElement interaction;
     public final LeadAttachmentElement leadAttachment = new LeadAttachmentElement();
     public final RideAttachmentElement rideAttachment = new RideAttachmentElement();
@@ -105,7 +107,7 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
             ServerSubmitNodeCollector<Entity, RenderState, Model> nodeCollector = new ServerSubmitNodeCollector<>(this);
             ServerSubmitNodeCollector.ACTIVE_ENTITY.set(this);
             activeElementIndex = 0;
-            renderer.submit(renderState, poseStack, nodeCollector, null);
+            renderer.submit(renderState, poseStack, nodeCollector, DEFAULT_CAMERA_STATE);
         } catch (Throwable e) {
             PolymerPatcher.LOGGER.debug("Failed to render", e);
         } finally {

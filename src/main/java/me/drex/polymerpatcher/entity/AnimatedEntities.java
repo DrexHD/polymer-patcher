@@ -16,10 +16,12 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,9 +35,9 @@ public class AnimatedEntities {
 
     public static <Entity extends net.minecraft.world.entity.Entity, RenderState extends EntityRenderState, Model extends EntityModel<? super RenderState>> void registerEntity(
         EntityType<Entity> type,
-        EntityRenderer<Entity, RenderState> renderer, ModelLayerLocation modelLayer, List<ModelPart> allParts, Identifier texture
+        EntityRenderer<Entity, RenderState> renderer, List<ModelPart> allParts, @Nullable ModelLayerLocation modelLayer, @Nullable Identifier texture
     ) {
-        PolyModelInstance<Entity, RenderState, Model> defaultModel = PolyModelInstance.create(renderer, modelLayer, allParts, texture);
+        PolyModelInstance<Entity, RenderState, Model> defaultModel = PolyModelInstance.create(renderer, allParts, modelLayer, texture);
         POLY_MODELS.add(defaultModel);
         ENTITY_FACTORIES.put(type, entity -> new SimpleEntityModel<>((Entity) entity, defaultModel));
     }
@@ -60,14 +62,17 @@ public class AnimatedEntities {
                 PolymerPatcher.LOGGER.warn("Failed to find entity renderer for {}", renderInfo.type());
                 return;
             }
+            if (renderInfo.modelLayers().isEmpty() || renderInfo.textures().isEmpty()) {
+                EntityRenderer entityRenderer = createEntityRenderer(entityId, entityRendererClass, context, null);
+                AnimatedEntities.registerEntity(renderInfo.type(), entityRenderer, Collections.emptyList(), null, null);
+            }
             for (ModelLayerLocation modelLayer : renderInfo.modelLayers()) {
                 EntityRenderer entityRenderer = createEntityRenderer(entityId, entityRendererClass, context, modelLayer);
 
                 if (entityRenderer != null) {
-                    if (renderInfo.textures().isEmpty()) return;
                     for (Identifier texture : renderInfo.textures()) {
                         ModelPart modelPart = bakedModels.get(modelLayer);
-                        AnimatedEntities.registerEntity(renderInfo.type(), entityRenderer, modelLayer, modelPart.getAllParts(), texture);
+                        AnimatedEntities.registerEntity(renderInfo.type(), entityRenderer, modelPart.getAllParts(), modelLayer, texture);
                     }
                 }
             }

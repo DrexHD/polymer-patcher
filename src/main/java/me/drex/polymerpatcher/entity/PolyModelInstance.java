@@ -16,6 +16,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.List;
@@ -23,21 +24,22 @@ import java.util.function.BiConsumer;
 
 public record PolyModelInstance<Entity extends net.minecraft.world.entity.Entity, RenderState extends EntityRenderState, Model extends EntityModel<? super RenderState>>(
     EntityRenderer<Entity, RenderState> renderer,
-    ModelLayerLocation modelLayer,
     List<ModelPart> allParts,
-    Identifier texture
+    @Nullable ModelLayerLocation modelLayer,
+    @Nullable Identifier texture
 ) {
 
     public static <Entity extends net.minecraft.world.entity.Entity, RenderState extends EntityRenderState, Model extends EntityModel<? super RenderState>> PolyModelInstance<Entity, RenderState, Model> create(
         EntityRenderer<Entity, RenderState> renderer,
-        ModelLayerLocation modelLayer,
         List<ModelPart> allParts,
-        Identifier texture
+        @Nullable ModelLayerLocation modelLayer,
+        @Nullable Identifier texture
     ) {
-        return new PolyModelInstance<>(renderer, modelLayer, allParts, texture);
+        return new PolyModelInstance<>(renderer, allParts, modelLayer, texture);
     }
 
     public void generateAssets(BiConsumer<String, byte[]> writer, AtlasAsset.Builder atlas) {
+        if (texture == null || modelLayer == null) return;
         atlas.single(texture);
 
         int id = 0;
