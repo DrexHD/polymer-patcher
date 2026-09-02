@@ -163,14 +163,20 @@ public final class RenderRegistryGenerator {
         PolymerPatcherDumper.LOGGER.info("Collecting block data...");
 
         for (Block block : BuiltInRegistries.BLOCK) {
+            Identifier id = BuiltInRegistries.BLOCK.getKey(block);
+            if (id.getNamespace().equals(Identifier.DEFAULT_NAMESPACE)) continue;
             ChunkSectionLayer chunkRenderType = ItemBlockRenderTypes.getChunkRenderType(block.defaultBlockState());
             boolean transparent = chunkRenderType != ChunkSectionLayer.SOLID;
 
             PolymerPatcherDumper.COLOR_RESOLVER.remove();
             Minecraft.getInstance().getBlockColors().getColor(block.defaultBlockState(), EmptyBlockAndTintGetter.INSTANCE, BlockPos.ZERO, 0);
 
-            BlockInfo blockInfo = new BlockInfo(block, PolymerPatcherDumper.COLOR_RESOLVER.get(), transparent);
-            registry.blockData.add(blockInfo);
+            var colorResolver = PolymerPatcherDumper.COLOR_RESOLVER.get();
+            // Only store non default values
+            if (colorResolver != null || transparent) {
+                BlockInfo blockInfo = new BlockInfo(block, colorResolver, transparent);
+                registry.blockData.add(blockInfo);
+            }
         }
     }
 
