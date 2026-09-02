@@ -337,4 +337,9 @@ public record AutomaticFactoryBlock(
     public boolean isIgnoringBlockInteractionPlaySoundExceptedEntity(BlockState state, ServerPlayer player, InteractionHand hand, ItemStack stack, ServerLevel world, BlockHitResult blockHitResult) {
         return true;
     }
+
+    @Override
+    public boolean showCustomMiningStageMarker(BlockState state, BlockPos pos, ServerPlayer player) {
+        return requiresElementHolder.contains(state);
+    }
 }
