@@ -1,7 +1,7 @@
 package me.drex.polymerpatcher.dump.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import me.drex.polymerpatcher.dump.generation.RenderRegistryGenerator;
+import me.drex.polymerpatcher.dump.generation.ClientDataGenerator;
 import net.minecraft.client.model.Model;
 import net.minecraft.client.renderer.SubmitNodeCollection;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
@@ -21,6 +21,6 @@ public abstract class SubmitNodeCollectionMixin {
         @Nullable TextureAtlasSprite textureAtlasSprite, int l,
         ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay, CallbackInfo ci
     ) {
-        RenderRegistryGenerator.captureTexture(renderType);
+        ClientDataGenerator.captureTexture(renderType);
     }
 }

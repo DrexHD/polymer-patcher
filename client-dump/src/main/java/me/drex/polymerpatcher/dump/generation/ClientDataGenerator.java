@@ -2,9 +2,9 @@ package me.drex.polymerpatcher.dump.generation;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import me.drex.polymerpatcher.dump.PolymerPatcherDumper;
-import me.drex.polymerpatcher.dump.data.RenderRegistry;
-import me.drex.polymerpatcher.dump.data.RenderRegistry.BlockInfo;
-import me.drex.polymerpatcher.dump.data.RenderRegistry.RenderInfo;
+import me.drex.polymerpatcher.dump.data.ClientDataRegistry;
+import me.drex.polymerpatcher.dump.data.ClientDataRegistry.BlockInfo;
+import me.drex.polymerpatcher.dump.data.ClientDataRegistry.EntityInfo;
 import me.drex.polymerpatcher.dump.mixin.RenderSetupAccessor;
 import me.drex.polymerpatcher.dump.mixin.RenderTypeAccessor;
 import me.drex.polymerpatcher.dump.render.DumpSubmitNodeCollector;
@@ -43,18 +43,18 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public final class RenderRegistryGenerator {
-    private RenderRegistryGenerator() {
+public final class ClientDataGenerator {
+    private ClientDataGenerator() {
     }
 
-    public static class RenderInfoBuilder {
+    public static class EntityInfoBuilder {
         private final EntityType<?> type;
         private final Map<ModelLayerLocation, LayerDefinition> modelLayers = new HashMap<>();
         private final Set<Identifier> textures = new HashSet<>();
         private Class<? extends EntityRenderer> entityRenderer;
 
 
-        public RenderInfoBuilder(EntityType<?> type) {
+        public EntityInfoBuilder(EntityType<?> type) {
             this.type = type;
         }
 
@@ -76,16 +76,16 @@ public final class RenderRegistryGenerator {
             return this.modelLayers;
         }
 
-        public RenderInfo build() {
-            return new RenderInfo(type, entityRenderer, new LinkedHashSet<>(modelLayers.keySet()), expandEntityTextures(textures));
+        public EntityInfo build() {
+            return new EntityInfo(type, entityRenderer, new LinkedHashSet<>(modelLayers.keySet()), expandEntityTextures(textures));
         }
     }
 
-    private static final Map<EntityType<?>, RenderInfoBuilder> BUILDERS_BY_TYPE = new ConcurrentHashMap<>();
-    private static final ThreadLocal<RenderInfoBuilder> INFO_BUILDER = new ThreadLocal<>();
+    private static final Map<EntityType<?>, EntityInfoBuilder> BUILDERS_BY_TYPE = new ConcurrentHashMap<>();
+    private static final ThreadLocal<EntityInfoBuilder> INFO_BUILDER = new ThreadLocal<>();
 
     public static <T extends EntityRenderer<?, ?>> T captureEntityRenderer(EntityType<?> entityType, Supplier<T> factory) {
-        RenderInfoBuilder builder = new RenderInfoBuilder(entityType);
+        EntityInfoBuilder builder = new EntityInfoBuilder(entityType);
         return withBuilderContext(builder, builder1 -> {
             T renderer = factory.get();
 
@@ -105,8 +105,8 @@ public final class RenderRegistryGenerator {
         });
     }
 
-    public static <T> T withBuilderContext(RenderInfoBuilder builder, Function<RenderInfoBuilder, T> action) {
-        RenderInfoBuilder previousBuilder = INFO_BUILDER.get();
+    public static <T> T withBuilderContext(EntityInfoBuilder builder, Function<EntityInfoBuilder, T> action) {
+        EntityInfoBuilder previousBuilder = INFO_BUILDER.get();
         try {
             INFO_BUILDER.set(builder);
             return action.apply(builder);
@@ -115,22 +115,23 @@ public final class RenderRegistryGenerator {
         }
     }
 
-    public static void inBuilderContext(Consumer<RenderInfoBuilder> action) {
-        RenderInfoBuilder builder = INFO_BUILDER.get();
+    public static void inBuilderContext(Consumer<EntityInfoBuilder> action) {
+        EntityInfoBuilder builder = INFO_BUILDER.get();
         if (builder != null) {
             action.accept(builder);
         }
     }
 
-    public static RenderRegistry generate(ServerLevel level) {
-        RenderRegistry registry = new RenderRegistry();
+    public static ClientDataRegistry generate(ServerLevel level) {
+        ClientDataRegistry registry = new ClientDataRegistry();
         collectEntityInfo(registry, level);
         collectBlockData(registry);
+        registry.updateModVersions();
         registry.rebuildIndexes();
         return registry;
     }
 
-    private static void collectEntityInfo(RenderRegistry registry, ServerLevel level) {
+    private static void collectEntityInfo(ClientDataRegistry registry, ServerLevel level) {
         CameraRenderState cameraRenderState = new CameraRenderState();
 
         for (EntityType<?> entityType : BuiltInRegistries.ENTITY_TYPE) {
@@ -159,7 +160,7 @@ public final class RenderRegistryGenerator {
         }
     }
 
-    private static void collectBlockData(RenderRegistry registry) {
+    private static void collectBlockData(ClientDataRegistry registry) {
         PolymerPatcherDumper.LOGGER.info("Collecting block data...");
 
         for (Block block : BuiltInRegistries.BLOCK) {

@@ -1,7 +1,7 @@
 package me.drex.polymerpatcher.dump.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import me.drex.polymerpatcher.dump.generation.RenderRegistryGenerator;
+import me.drex.polymerpatcher.dump.generation.ClientDataGenerator;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.ModelPart;
@@ -64,12 +64,12 @@ public final class DumpSubmitNodeCollector implements SubmitNodeCollector {
 
     @Override
     public <S> void submitModel(Model<? super S> model, S object, PoseStack poseStack, RenderType renderType, int i, int j, int k, @Nullable TextureAtlasSprite textureAtlasSprite, int l, ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay) {
-        RenderRegistryGenerator.captureTexture(renderType);
+        ClientDataGenerator.captureTexture(renderType);
     }
 
     @Override
     public void submitModelPart(ModelPart modelPart, PoseStack poseStack, RenderType renderType, int i, int j, @Nullable TextureAtlasSprite textureAtlasSprite, boolean bl, boolean bl2, int k, ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay, int l) {
-        RenderRegistryGenerator.captureTexture(renderType);
+        ClientDataGenerator.captureTexture(renderType);
     }
 
     @Override

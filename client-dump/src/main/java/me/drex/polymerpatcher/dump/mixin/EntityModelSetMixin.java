@@ -1,7 +1,7 @@
 package me.drex.polymerpatcher.dump.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import me.drex.polymerpatcher.dump.generation.RenderRegistryGenerator;
+import me.drex.polymerpatcher.dump.generation.ClientDataGenerator;
 import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
@@ -21,6 +21,6 @@ public abstract class EntityModelSetMixin {
         )
     )
     public void captureContext(ModelLayerLocation modelLayerLocation, CallbackInfoReturnable<ModelPart> cir, @Local LayerDefinition layerDefinition) {
-        RenderRegistryGenerator.inBuilderContext(builder -> builder.modelLayer(modelLayerLocation, layerDefinition));
+        ClientDataGenerator.inBuilderContext(builder -> builder.modelLayer(modelLayerLocation, layerDefinition));
     }
 }

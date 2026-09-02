@@ -14,7 +14,7 @@ import eu.pb4.polymer.resourcepack.extras.api.format.blockstate.BlockStateAsset;
 import eu.pb4.polymer.resourcepack.extras.api.format.blockstate.StateModelVariant;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import me.drex.polymerpatcher.PolymerPatcher;
-import me.drex.polymerpatcher.dump.data.RenderRegistry;
+import me.drex.polymerpatcher.dump.data.ClientDataRegistry;
 import me.drex.polymerpatcher.resources.ResourceHelper;
 import me.drex.polymerpatcher.resources.ResourcePackGenerator;
 import net.minecraft.core.BlockPos;
@@ -38,7 +38,6 @@ import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public record AutomaticFactoryBlock(
     Map<BlockState, BlockState> mappedStates,
@@ -264,7 +263,7 @@ public record AutomaticFactoryBlock(
 
     private static Set<BlockModelType> pickBlockModelTypeCandidate(Identifier id, BlockState original, Set<BlockModelType> mappedBlockModelCandidates) {
         Block block = original.getBlock();
-        RenderRegistry.BlockInfo blockInfo = PolymerPatcher.getRenderRegistry().blockInfoByBlock.get(block);
+        ClientDataRegistry.BlockInfo blockInfo = PolymerPatcher.getRenderRegistry().blockInfoByBlock.get(block);
         boolean biomeColor = blockInfo != null && blockInfo.biomeColor() != null;
         // TODO check tag?
         boolean climbable = false;

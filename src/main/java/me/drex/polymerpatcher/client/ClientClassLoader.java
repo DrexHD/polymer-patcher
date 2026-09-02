@@ -20,7 +20,7 @@ public class ClientClassLoader {
         // https://piston-meta.mojang.com/mc/game/version_manifest_v2.json
         // https://piston-meta.mojang.com/v1/packages/30bb79802dcf36de95322ef6a055960c88131d2b/1.21.11.json
         // https://piston-data.mojang.com/v1/objects/ba2df812c2d12e0219c489c4cd9a5e1f0760f5bd/client.jar
-        Path cache = FabricLoader.getInstance().getGameDir().resolve(".polymer-patch/");
+        Path cache = PolymerPatcher.POLYMER_PATCHER_PATH.resolve("client-cache");
 
         Files.createDirectories(cache);
 

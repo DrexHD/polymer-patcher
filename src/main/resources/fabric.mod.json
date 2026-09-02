@@ -23,7 +23,7 @@
 	],
 	"accessWidener": "polymer-patcher.classtweaker",
 	"depends": {
-		"fabricloader": ">=0.18.4",
+		"fabricloader": ">=0.19.5",
 		"java": ">=21",
 		"fabric-api": "*"
 	}

@@ -7,24 +7,19 @@ import eu.pb4.polymer.virtualentity.api.attachment.BlockAwareAttachment;
 import eu.pb4.polymer.virtualentity.api.attachment.BlockBoundAttachment;
 import eu.pb4.polymer.virtualentity.api.attachment.HolderAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
-import eu.pb4.polymer.virtualentity.api.elements.TextDisplayElement;
 import me.drex.polymerpatcher.PolymerPatcher;
-import me.drex.polymerpatcher.dump.data.RenderRegistry;
-import net.minecraft.client.renderer.BiomeColors;
+import me.drex.polymerpatcher.dump.data.ClientDataRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.QuartPos;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.network.chat.Component;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.Display;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.MapItemColor;
 import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -94,7 +89,7 @@ public class BlockStateModel extends BlockModel {
         if (!(getAttachment() instanceof BlockBoundAttachment blockBoundAttachment)) {
             return;
         }
-        RenderRegistry.BlockInfo blockInfo = PolymerPatcher.getRenderRegistry().blockInfoByBlock.get(blockBoundAttachment.getBlockState().getBlock());
+        ClientDataRegistry.BlockInfo blockInfo = PolymerPatcher.getRenderRegistry().blockInfoByBlock.get(blockBoundAttachment.getBlockState().getBlock());
         if (blockInfo != null && blockInfo.biomeColor() != null) {
             int color = getAverageColor(blockBoundAttachment.getChunk(), pos, blockInfo.biomeColor());
             if (color != -1) {

@@ -1,7 +1,7 @@
 package me.drex.polymerpatcher.entity;
 
 import me.drex.polymerpatcher.PolymerPatcher;
-import me.drex.polymerpatcher.dump.data.RenderRegistry;
+import me.drex.polymerpatcher.dump.data.ClientDataRegistry;
 import me.drex.polymerpatcher.entity.render.ServerEntityModelSet;
 import me.drex.polymerpatcher.entity.render.ServerEntityRenderDispatcher;
 import me.drex.polymerpatcher.entity.render.ServerItemModelResolver;
@@ -41,7 +41,7 @@ public class AnimatedEntities {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public static void registerEntities(RenderRegistry registry) {
+    public static void registerEntities(ClientDataRegistry registry) {
         Map<ModelLayerLocation, ModelPart> bakedModels = new LinkedHashMap<>();
 
         registry.modelLayers.forEach((modelLayerLocation, layerDefinition) -> {

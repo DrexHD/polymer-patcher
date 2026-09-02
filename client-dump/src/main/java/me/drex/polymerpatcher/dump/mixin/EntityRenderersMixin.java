@@ -3,7 +3,7 @@ package me.drex.polymerpatcher.dump.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import me.drex.polymerpatcher.dump.generation.RenderRegistryGenerator;
+import me.drex.polymerpatcher.dump.generation.ClientDataGenerator;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.EntityRenderers;
@@ -24,6 +24,6 @@ public abstract class EntityRenderersMixin {
         EntityRendererProvider<?> instance, EntityRendererProvider.Context context,
         Operation<EntityRenderer<?, ?>> original, @Local(argsOnly = true) EntityType<?> entityType
     ) {
-        return RenderRegistryGenerator.captureEntityRenderer(entityType, () -> original.call(instance, context));
+        return ClientDataGenerator.captureEntityRenderer(entityType, () -> original.call(instance, context));
     }
 }
