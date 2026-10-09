@@ -63,13 +63,16 @@ configurations.runtimeClasspath {
 
 afterEvaluate {
 	loom.runs.configureEach {
-		// https://fabricmc.net/wiki/tutorial:mixin_hotswaps
-//		jvmArguments.add("-javaagent:${ configurations.compileClasspath.get().find { it.name.contains("sponge-mixin") } }")
+		jvmArguments.add("-javaagent:${ configurations.compileClasspath.find { it.name.contains("sponge-mixin") } }")
 		jvmArguments.add("-XX:+UnlockDiagnosticVMOptions")
 		jvmArguments.add("-XX:+DebugNonSafepoints")
-//		jvmArguments.add("-Dmixin.debug.export=true")
-//		jvmArguments.add("-Dmixin.debug=true")
 		jvmArguments.add("-Dfabric.disableEnvironmentStrip=1")
+
+		// Mixin debugging
+		//jvmArguments.addAll("-Dmixin.debug=true", "-Dmixin.debug.export=true")
+
+		// Enhanced class redefinition
+		jvmArguments.addAll("-XX:NonProfiledCodeHeapSize=1G", "-XX:ReservedCodeCacheSize=2G", "-XX:+AllowEnhancedClassRedefinition", "-XX:TieredStopAtLevel=1")
 	}
 }
 

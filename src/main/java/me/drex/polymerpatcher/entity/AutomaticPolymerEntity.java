@@ -15,6 +15,7 @@ import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
@@ -33,7 +34,7 @@ public record AutomaticPolymerEntity<T extends Entity>(T entity) implements Poly
 
     public AutomaticPolymerEntity {
         Function<Entity, ? extends SimpleEntityModel<?, ?, ?>> factory = (Function<Entity, ? extends SimpleEntityModel<?, ?, ?>>) AnimatedEntities.ENTITY_FACTORIES.get(entity.getType());
-        if (factory != null) {
+        if (factory != null && entity.level() instanceof ServerLevel) {
             SimpleEntityModel<?, ?, ?> holder = factory.apply(entity);
             IdentifiedUniqueEntityAttachment.ofTicking(MODEL, holder, entity);
         }
