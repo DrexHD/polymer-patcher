@@ -37,7 +37,7 @@ public class ClientDataRegistry {
     ) {
     }
 
-    public record BlockInfo(Block block, ColorResolver biomeColor, boolean transparent) {
+    public record BlockInfo(Block block, ColorResolver biomeColor) {
     }
 
     public void updateModVersions() {

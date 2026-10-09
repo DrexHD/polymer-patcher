@@ -7,19 +7,16 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.impl.util.SystemProperties;
 
 import java.lang.reflect.Type;
 
 public class ClassAdapter implements JsonSerializer<Class<?>>, JsonDeserializer<Class<?>> {
     private static final boolean DISABLE_ENVIRONMENT_STRIP = SystemProperties.isSet(SystemProperties.DISABLE_ENVIRONMENT_STRIP);
-    private static final String STORAGE_NAMESPACE = "intermediary";
 
     @Override
     public JsonElement serialize(Class<?> src, Type typeOfSrc, JsonSerializationContext context) {
-        String className = FabricLoader.getInstance().getMappingResolver().unmapClassName(STORAGE_NAMESPACE, src.getName());
-        return new JsonPrimitive(className);
+        return new JsonPrimitive(src.getName());
     }
 
     @Override
@@ -27,8 +24,7 @@ public class ClassAdapter implements JsonSerializer<Class<?>>, JsonDeserializer<
         throws JsonParseException {
 
         try {
-            String className = FabricLoader.getInstance().getMappingResolver().mapClassName(STORAGE_NAMESPACE, json.getAsString());
-            return Class.forName(className);
+            return Class.forName(json.getAsString());
         } catch (ClassNotFoundException e) {
             return null;
         } catch (RuntimeException e) {

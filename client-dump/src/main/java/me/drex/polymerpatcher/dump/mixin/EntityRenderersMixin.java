@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(EntityRenderers.class)
 public abstract class EntityRenderersMixin {
     @WrapOperation(
-        method = "method_32174",
+        method = "lambda$createEntityRenderers$0",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/renderer/entity/EntityRendererProvider;create(Lnet/minecraft/client/renderer/entity/EntityRendererProvider$Context;)Lnet/minecraft/client/renderer/entity/EntityRenderer;"
@@ -22,8 +22,8 @@ public abstract class EntityRenderersMixin {
     )
     private static EntityRenderer<?, ?> captureContext(
         EntityRendererProvider<?> instance, EntityRendererProvider.Context context,
-        Operation<EntityRenderer<?, ?>> original, @Local(argsOnly = true) EntityType<?> entityType
+        Operation<EntityRenderer<?, ?>> original, @Local(argsOnly = true, name = "type") EntityType<?> type
     ) {
-        return ClientDataGenerator.captureEntityRenderer(entityType, () -> original.call(instance, context));
+        return ClientDataGenerator.captureEntityRenderer(type, () -> original.call(instance, context));
     }
 }

@@ -1,5 +1,6 @@
 package me.drex.polymerpatcher.entity;
 
+import com.mojang.math.Quadrant;
 import eu.pb4.polymer.resourcepack.api.AssetPaths;
 import eu.pb4.polymer.resourcepack.extras.api.format.atlas.AtlasAsset;
 import eu.pb4.polymer.resourcepack.extras.api.format.model.ModelAsset;
@@ -51,8 +52,8 @@ public record PolyModelInstance<Entity extends net.minecraft.world.entity.Entity
 
             var modelId = texture.withSuffix("/" + modelLayer.layer() + "/part_" + (id++));
             var model = ModelAsset.builder();
-            model.texture("txt", texture.toString());
-            model.texture("particle", "#txt");
+            model.texture("txt", texture);
+            model.textureReference("particle", "txt");
 
             for (ModelPart.Cube cuboid : ((ModelPartAccessor) (Object) part).getCubes()) {
                 for (var quad : cuboid.polygons) {
@@ -86,8 +87,8 @@ public record PolyModelInstance<Entity extends net.minecraft.world.entity.Entity
                         dir = dir.getOpposite();
                     }
 
-                    b.face(dir, v1.u() * 16, v2.v() * 16, v2.u() * 16, v1.v() * 16, "#txt", dir, 0, 0);
-                    b.face(dir.getOpposite(), v2.u() * 16, v2.v() * 16, v1.u() * 16, v1.v() * 16, "#txt", dir.getOpposite(), 0, 0);
+                    b.face(dir, clampUv(v1.u() * 16), clampUv(v2.v() * 16), clampUv(v2.u() * 16), clampUv(v1.v() * 16), "#txt", dir, Quadrant.R0, 0);
+                    b.face(dir.getOpposite(), clampUv(v2.u() * 16), clampUv(v2.v() * 16), clampUv(v1.u() * 16), clampUv(v1.v() * 16), "#txt", dir.getOpposite(), Quadrant.R0, 0);
 
 
                     model.element(b.build());
@@ -98,6 +99,10 @@ public record PolyModelInstance<Entity extends net.minecraft.world.entity.Entity
 
             writer.accept(AssetPaths.model(modelId) + ".json", model.build().toBytes());
         }
+    }
+
+    private static float clampUv(float uv) {
+        return Math.clamp(uv, 0, 16);
     }
 
 }

@@ -1,6 +1,6 @@
 package me.drex.polymerpatcher.mixin.registry;
 
-import eu.pb4.polymer.core.api.item.PolymerItemGroupUtils;
+import eu.pb4.polymer.core.api.item.PolymerCreativeModeTabUtils;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
@@ -21,7 +21,7 @@ public interface RegistryMixin {
     )
     private static <V, T extends V> void registerCreateModeTabsToPolymer(Registry<V> registry, ResourceKey<V> resourceKey, T object, CallbackInfoReturnable<T> cir) {
         if (registry == BuiltInRegistries.CREATIVE_MODE_TAB) {
-            PolymerItemGroupUtils.registerPolymerItemGroup(resourceKey.identifier(), (CreativeModeTab) object);
+            PolymerCreativeModeTabUtils.registerPolymerCreativeModeTab(resourceKey.identifier(), (CreativeModeTab) object);
         }
     }
 }

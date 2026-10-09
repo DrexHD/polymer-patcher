@@ -17,13 +17,7 @@ import java.util.Map;
 
 public class PolymerBlockHelper {
     public static void registerPolymerBlock(Identifier id, Block block) {
-        boolean transparent = block instanceof TransparentBlock || block instanceof StainedGlassPaneBlock;
-
-        if (transparent) {
-            BlockStateModelManager.addTransparentBlock(id, block);
-        } else {
-            BlockStateModelManager.addSolidBlock(id, block);
-        }
+        BlockStateModelManager.addBlock(id, block);
 
         PolymerBlock polymerBlock = requestPolymerBlock(id, block);
         PolymerBlock.registerOverlay(block, polymerBlock);

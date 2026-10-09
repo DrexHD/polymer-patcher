@@ -3,14 +3,14 @@ package me.drex.polymerpatcher.entity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import eu.pb4.factorytools.api.block.model.generic.BlockStateModelManager;
 import eu.pb4.factorytools.api.virtualentity.ItemDisplayElementUtil;
-import eu.pb4.factorytools.api.virtualentity.emuvanilla2.poly.RideAttachmentElement;
-import eu.pb4.factorytools.api.virtualentity.emuvanilla2.poly.LeadAttachmentElement;
+import eu.pb4.factorytools.api.virtualentity.emuvanilla.poly.LeadAttachmentElement;
+import eu.pb4.factorytools.api.virtualentity.emuvanilla.poly.RideAttachmentElement;
 import eu.pb4.factorytools.mixin.LivingEntityAccessor;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
+import eu.pb4.polymer.virtualentity.api.data.DisplayEntityData;
 import eu.pb4.polymer.virtualentity.api.elements.InteractionElement;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.VirtualElement;
-import eu.pb4.polymer.virtualentity.api.tracker.DisplayTrackedData;
 import me.drex.polymerpatcher.PolymerPatcher;
 import me.drex.polymerpatcher.duck.IModelPart;
 import me.drex.polymerpatcher.entity.render.ServerSubmitNodeCollector;
@@ -22,7 +22,7 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.state.BoatRenderState;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
@@ -77,7 +77,7 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
         noTick = false;
         if (this.entity instanceof LivingEntity livingEntity) {
             this.rideAttachment.setMaxHealth(livingEntity.getMaxHealth());
-            this.rideAttachment.getDataTracker().set(LivingEntityAccessor.getDATA_HEALTH_ID(), livingEntity.getHealth());
+            this.rideAttachment.getSyncedData().set(LivingEntityAccessor.getDATA_HEALTH_ID(), livingEntity.getHealth());
         }
         this.interaction.setCustomName(this.entity.getCustomName());
         this.interaction.setCustomNameVisible(this.entity.isCustomNameVisible());
@@ -121,7 +121,7 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
         super.onTick();
     }
 
-    public void updateModelPart(ModelPart part, Matrix4f matrix4f, int overlayCoords, Identifier texture, boolean translucent, boolean hidden) {
+    public void updateModelPart(ModelPart part, Matrix4f matrix4f, int overlayCoords, Identifier texture, boolean hidden) {
         int id = ((IModelPart) (Object) part).polymer_patcher$getId();
         ModelLayerLocation modelLayer = ((IModelPart) (Object) part).polymer_patcher$getModelLayerLocation();
         if (id < 0 || modelLayer == null || hidden) {
@@ -130,7 +130,7 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
 
         boolean redOverlay = (overlayCoords >> 16) == OverlayTexture.RED_OVERLAY_V;
 
-        updateItemDisplayElement(createItemStack(id, redOverlay, texture, modelLayer, translucent), matrix4f);
+        updateItemDisplayElement(createItemStack(id, redOverlay, texture, modelLayer), matrix4f);
     }
 
     public void updateBlock(BlockState blockState, Matrix4f matrix4f) {
@@ -172,7 +172,7 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
             // Update element
             element.setTeleportDuration(3);
             element.setItem(itemStack);
-            element.getDataTracker().setDirty(DisplayTrackedData.Item.ITEM, true);
+            element.getSyncedData().setDirty(DisplayEntityData.Item.ITEM, true);
         }
 
         element.setTransformation(matrix4f);
@@ -190,14 +190,11 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
         return element;
     }
 
-    private ItemStack createItemStack(int id, boolean redOverlay, Identifier texture, ModelLayerLocation modelLayer, boolean translucent) {
+    private ItemStack createItemStack(int id, boolean redOverlay, Identifier texture, ModelLayerLocation modelLayer) {
         Identifier modelPath = texture.withSuffix("/" + modelLayer.layer() + "/part_" + id);
         ItemStack stack;
-        if (translucent) {
-           stack = ItemDisplayElementUtil.getTransparentModel(modelPath);
-        } else {
-            stack = ItemDisplayElementUtil.getSolidModel(modelPath);
-        }
+        // TODO use getModel?
+        stack = ItemDisplayElementUtil.getModelCopy(modelPath);
         if (redOverlay) {
             stack.set(DataComponents.MAP_COLOR, new MapItemColor(0xff7e7e));
         } else {

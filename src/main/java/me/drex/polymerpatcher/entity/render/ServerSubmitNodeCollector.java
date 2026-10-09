@@ -1,12 +1,9 @@
 package me.drex.polymerpatcher.entity.render;
 
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.PoseStack;
 import me.drex.polymerpatcher.client.rendering.CubeConsumer;
 import me.drex.polymerpatcher.client.rendering.NoOpVertexConsumer;
 import me.drex.polymerpatcher.entity.SimpleEntityModel;
-import me.drex.polymerpatcher.mixin.client.render.RenderPipelineAccessor;
 import me.drex.polymerpatcher.mixin.client.render.RenderSetupAccessor;
 import me.drex.polymerpatcher.mixin.client.render.RenderTypeAccessor;
 import net.minecraft.client.gui.Font;
@@ -15,20 +12,20 @@ import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.OrderedSubmitNodeCollector;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.block.MovingBlockRenderState;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.BlockStateModel;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
@@ -74,18 +71,11 @@ public class ServerSubmitNodeCollector<Entity extends net.minecraft.world.entity
     public <S> void submitModel(net.minecraft.client.model.Model<? super S> model, S object, PoseStack poseStack, RenderType renderType, int lightCoords, int overlayCoords, int tintedColor, @Nullable TextureAtlasSprite textureAtlasSprite, int l, ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay) {
         RenderSetup renderSetup = ((RenderTypeAccessor) renderType).getState();
         Map<String, RenderSetup.TextureBinding> textures = ((RenderSetupAccessor) (Object) renderSetup).polymer_patcher$textures();
-        RenderPipeline pipeline = ((RenderSetupAccessor) (Object) renderSetup).polymer_patcher$pipeline();
-        var translucent = ((RenderPipelineAccessor) pipeline)
-            .polymer_patcher$blendFunction()
-            .map(f ->
-                f == BlendFunction.TRANSLUCENT ||
-                f == BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA
-            ).orElse(false);
         for (Map.Entry<String, RenderSetup.TextureBinding> stringTextureBindingEntry : textures.entrySet()) {
             Identifier texture = stringTextureBindingEntry.getValue().location();
             String path = texture.getPath().replace("textures/", "").replace(".png", "");
 
-            CubeConsumer.CONSUMER.set((part, matrix4f, hidden) -> entityModel.updateModelPart(part, matrix4f, overlayCoords, texture.withPath(path), translucent, hidden));
+            CubeConsumer.CONSUMER.set((part, matrix4f, hidden) -> entityModel.updateModelPart(part, matrix4f, overlayCoords, texture.withPath(path), hidden));
             model.renderToBuffer(poseStack, NoOpVertexConsumer.INSTANCE, lightCoords, overlayCoords, tintedColor);
             CubeConsumer.CONSUMER.remove();
             break;
@@ -97,21 +87,23 @@ public class ServerSubmitNodeCollector<Entity extends net.minecraft.world.entity
     }
 
     @Override
-    public void submitBlock(PoseStack poseStack, BlockState blockState, int i, int j, int k) {
-        entityModel.updateBlock(blockState, poseStack.last().pose());
-    }
-
-    @Override
     public void submitMovingBlock(PoseStack poseStack, MovingBlockRenderState movingBlockRenderState) {
 
     }
 
     @Override
-    public void submitBlockModel(PoseStack poseStack, RenderType renderType, BlockStateModel blockStateModel, float f, float g, float h, int i, int j, int k) {
+    public void submitBlockModel(PoseStack poseStack, RenderType renderType, List<BlockStateModelPart> parts, int[] tintLayers, int lightCoords, int overlayCoords, int outlineColor) {
+        // TODO
+        //entityModel.updateBlock(blockState, poseStack.last().pose());
     }
 
     @Override
-    public void submitItem(PoseStack poseStack, ItemDisplayContext itemDisplayContext, int i, int j, int k, int[] is, List<BakedQuad> list, RenderType renderType, ItemStackRenderState.FoilType foilType) {
+    public void submitBreakingBlockModel(PoseStack poseStack, BlockStateModel model, long seed, int progress) {
+
+    }
+
+    @Override
+    public void submitItem(PoseStack poseStack, ItemDisplayContext displayContext, int lightCoords, int overlayCoords, int outlineColor, int[] tintLayers, List<BakedQuad> quads, ItemStackRenderState.FoilType foilType) {
 
     }
 

@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version "${loom_version}"
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 	id 'maven-publish'
 }
 
@@ -22,23 +22,22 @@ repositories {
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    modImplementation include("eu.pb4:factorytools:${project.factorytools_version}")
-    modImplementation include("nl.theepicblock:resource-locator-api:${project.resource_locator_version}")
+    implementation include("eu.pb4:factorytools:${project.factorytools_version}")
+    implementation include("nl.theepicblock:resource-locator-api:${project.resource_locator_version}")
 
-    modImplementation "eu.pb4:polymer-core:${project.polymer_version}"
-    modImplementation("eu.pb4:polymer-blocks:${project.polymer_version}")
-    modImplementation "eu.pb4:polymer-resource-pack:${project.polymer_version}"
-    modImplementation("eu.pb4:polymer-sound-patcher:${project.polymer_version}")
-    modImplementation "eu.pb4:polymer-resource-pack-extras:${project.polymer_version}"
-    modImplementation("eu.pb4:polymer-autohost:${project.polymer_version}")
-    modImplementation "eu.pb4:polymer-virtual-entity:${project.polymer_version}"
+    implementation "eu.pb4:polymer-core:${project.polymer_version}"
+    implementation("eu.pb4:polymer-blocks:${project.polymer_version}")
+    implementation "eu.pb4:polymer-resource-pack:${project.polymer_version}"
+    implementation("eu.pb4:polymer-sound-patcher:${project.polymer_version}")
+    implementation "eu.pb4:polymer-resource-pack-extras:${project.polymer_version}"
+    implementation("eu.pb4:polymer-autohost:${project.polymer_version}")
+    implementation "eu.pb4:polymer-virtual-entity:${project.polymer_version}"
 
-	implementation project(path: ":client-dump", configuration: "namedElements")
+	implementation project(path: ":client-dump")
 	include project(":client-dump")
 }
 
@@ -51,11 +50,27 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
+	it.options.release = 25
 }
 
 loom {
     accessWidenerPath = file("src/main/resources/polymer-patcher.classtweaker")
+}
+
+configurations.runtimeClasspath {
+	exclude group: 'net.fabricmc.fabric-api', module: 'fabric-gametest-api-v1'
+}
+
+afterEvaluate {
+	loom.runs.configureEach {
+		// https://fabricmc.net/wiki/tutorial:mixin_hotswaps
+//		jvmArguments.add("-javaagent:${ configurations.compileClasspath.get().find { it.name.contains("sponge-mixin") } }")
+		jvmArguments.add("-XX:+UnlockDiagnosticVMOptions")
+		jvmArguments.add("-XX:+DebugNonSafepoints")
+//		jvmArguments.add("-Dmixin.debug.export=true")
+//		jvmArguments.add("-Dmixin.debug=true")
+		jvmArguments.add("-Dfabric.disableEnvironmentStrip=1")
+	}
 }
 
 java {
@@ -64,8 +79,8 @@ java {
 	// If you remove this line, sources will not be generated.
 	withSourcesJar()
 
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
 }
 
 jar {

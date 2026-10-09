@@ -2,7 +2,6 @@ package me.drex.polymerpatcher.block;
 
 import com.mojang.datafixers.util.Pair;
 import eu.pb4.factorytools.api.block.FactoryBlock;
-import eu.pb4.factorytools.api.block.model.SignModel;
 import eu.pb4.factorytools.api.block.model.generic.BSMMParticleBlock;
 import eu.pb4.factorytools.api.block.model.generic.BlockStateModelManager;
 import eu.pb4.polymer.blocks.api.BlockModelType;
@@ -17,6 +16,7 @@ import me.drex.polymerpatcher.PolymerPatcher;
 import me.drex.polymerpatcher.dump.data.ClientDataRegistry;
 import me.drex.polymerpatcher.resources.ResourceHelper;
 import me.drex.polymerpatcher.resources.ResourcePackGenerator;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -34,7 +34,6 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -49,40 +48,8 @@ public record AutomaticFactoryBlock(
     private static final Map<ShapeKey, Set<BlockModelType>> COLLISION_BLOCK_MODEL_CACHE = new HashMap<>();
 
     // Special block types
-    private static final Set<BlockModelType> BIOME_COLOR = Set.of(BlockModelType.BIOME_TRANSPARENT_BLOCK, BlockModelType.BIOME_TRANSPARENT_BLOCK_WATERLOGGED, BlockModelType.BIOME_PLANT_BLOCK);
-    private static final Set<BlockModelType> TRANSPARENT = new HashSet<>() {{
-        addAll(
-            Set.of(
-                BlockModelType.TRANSPARENT_BLOCK, BlockModelType.TRANSPARENT_BLOCK_WATERLOGGED,
-                BlockModelType.BIOME_TRANSPARENT_BLOCK, BlockModelType.BIOME_TRANSPARENT_BLOCK_WATERLOGGED,
-                BlockModelType.PLANT_BLOCK, BlockModelType.BIOME_PLANT_BLOCK,
-                BlockModelType.VINES_BLOCK, BlockModelType.KELP_BLOCK,
-                BlockModelType.CACTUS_BLOCK, BlockModelType.TRIPWIRE_BLOCK,
-                BlockModelType.TRIPWIRE_BLOCK_FLAT
-            )
-        );
-        for (BlockModelType modelType : BlockModelType.values()) {
-            String name = modelType.name();
-            if (name.contains("CHAIN_")) {
-                add(modelType);
-            } else if (name.contains("LANTERN")) {
-                add(modelType);
-            } else if (name.contains("_DOOR")) {
-                add(modelType);
-            } else if (name.contains("_TRAPDOOR")) {
-                add(modelType);
-            } else if (name.contains("CAMPFIRE")) {
-                add(modelType);
-            } else if (name.contains("SCULK_SENSOR_BLOCK")) {
-                add(modelType);
-            } else if (name.contains("_SCAFFOLDING")) {
-                add(modelType);
-            } else if (name.contains("BARS_")) {
-                add(modelType);
-            }
-        }
-    }};
-    private static final Set<BlockModelType> CLIMBABLE = Set.of(BlockModelType.VINES_BLOCK);
+    private static final Set<BlockModelType> BIOME_COLOR = Set.of(BlockModelType.BIOME_COLORED_LEAVES, BlockModelType.BIOME_COLORED_LEAVES_WATERLOGGED, BlockModelType.BIOME_PLANT);
+    private static final Set<BlockModelType> CLIMBABLE = Set.of(BlockModelType.VINES);
 
     private static final Set<BlockModelType> WATERLOGGED = new HashSet<>() {{
         for (BlockModelType modelType : BlockModelType.values()) {
@@ -90,7 +57,7 @@ public record AutomaticFactoryBlock(
                 add(modelType);
             }
         }
-        add(BlockModelType.KELP_BLOCK);
+        add(BlockModelType.KELP);
     }};
 
     static {
@@ -243,8 +210,8 @@ public record AutomaticFactoryBlock(
             requiresElementHolder.add(originalState);
             BlockState pickedBlockState = pickBlockStateCandidate(id, originalState, mappedStateCandidates);
 
-            for (Map.Entry<Property<?>, Comparable<?>> entry : originalState.getValues().entrySet()) {
-                pickedBlockState = copyProperty(pickedBlockState, (Property) entry.getKey(), entry.getValue());
+            for (Property.Value<?> value : originalState.getValues().toList()) {
+                pickedBlockState = copyProperty(pickedBlockState, (Property) value.property(), value.value());
             }
             PolymerPatcher.LOGGER.debug("Mapping blockstate {} -> {} (matching block class)", originalState, pickedBlockState);
             return pickedBlockState;
@@ -267,7 +234,6 @@ public record AutomaticFactoryBlock(
         boolean biomeColor = blockInfo != null && blockInfo.biomeColor() != null;
         // TODO check tag?
         boolean climbable = false;
-        boolean transparent = blockInfo != null && blockInfo.transparent();
         boolean waterLogged = original.getValueOrElse(BlockStateProperties.WATERLOGGED, false);
 
         List<Predicate<BlockModelType>> predicatePriority = new LinkedList<>();
@@ -275,7 +241,6 @@ public record AutomaticFactoryBlock(
         predicatePriority.add(x -> climbable ^ !CLIMBABLE.contains(x));
         predicatePriority.add(x -> waterLogged ^ !WATERLOGGED.contains(x));
         predicatePriority.add(x -> biomeColor ^ !BIOME_COLOR.contains(x));
-        predicatePriority.add(x -> transparent ^ !TRANSPARENT.contains(x));
 
 
         Set<BlockModelType> currentBlockModelCandidates = mappedBlockModelCandidates;
@@ -324,9 +289,6 @@ public record AutomaticFactoryBlock(
     @Override
     public @Nullable ElementHolder createElementHolder(ServerLevel world, BlockPos pos, BlockState initialBlockState) {
         if (requiresElementHolder.contains(initialBlockState)) {
-            if (initialBlockState.getBlock() instanceof SignBlock) {
-                return new SignModel(initialBlockState, pos);
-            }
             return BlockStateModel.midRange();
         }
         return null;

@@ -9,19 +9,19 @@ import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.item.ItemModelResolver;
-import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.entity.Entity;
 
 public class ServerEntityRenderDispatcher extends EntityRenderDispatcher {
     public ServerEntityRenderDispatcher() {
-        super(null, null, new ServerItemModelResolver(), null, null, null, null, null, null, null, null);
+        super(null, null, null, new ServerItemModelResolver(), null, null, null, null, null, null, null);
     }
 
     @Override
     public <E extends Entity> int getPackedLightCoords(E entity, float f) {
-        return LightTexture.pack(15, 15);
+        return LightCoordsUtil.pack(15, 15);
     }
 
     @Override

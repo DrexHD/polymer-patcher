@@ -9,16 +9,17 @@ import me.drex.polymerpatcher.dump.mixin.RenderSetupAccessor;
 import me.drex.polymerpatcher.dump.mixin.RenderTypeAccessor;
 import me.drex.polymerpatcher.dump.render.DumpSubmitNodeCollector;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.block.BlockTintSource;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -28,8 +29,8 @@ import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.level.EmptyBlockAndTintGetter;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -166,16 +167,18 @@ public final class ClientDataGenerator {
         for (Block block : BuiltInRegistries.BLOCK) {
             Identifier id = BuiltInRegistries.BLOCK.getKey(block);
             if (id.getNamespace().equals(Identifier.DEFAULT_NAMESPACE)) continue;
-            ChunkSectionLayer chunkRenderType = ItemBlockRenderTypes.getChunkRenderType(block.defaultBlockState());
-            boolean transparent = chunkRenderType != ChunkSectionLayer.SOLID;
+            BlockState blockState = block.defaultBlockState();
 
             PolymerPatcherDumper.COLOR_RESOLVER.remove();
-            Minecraft.getInstance().getBlockColors().getColor(block.defaultBlockState(), EmptyBlockAndTintGetter.INSTANCE, BlockPos.ZERO, 0);
+            BlockTintSource tintSource = Minecraft.getInstance().getBlockColors().getTintSource(blockState, 0);
+            if (tintSource != null) {
+                tintSource.colorInWorld(blockState, BlockAndTintGetter.EMPTY, BlockPos.ZERO);
+            }
 
             var colorResolver = PolymerPatcherDumper.COLOR_RESOLVER.get();
             // Only store non default values
-            if (colorResolver != null || transparent) {
-                BlockInfo blockInfo = new BlockInfo(block, colorResolver, transparent);
+            if (colorResolver != null) {
+                BlockInfo blockInfo = new BlockInfo(block, colorResolver);
                 registry.blockData.add(blockInfo);
             }
         }

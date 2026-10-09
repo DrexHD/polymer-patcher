@@ -41,7 +41,7 @@ public final class PolymerLightUpdateHelper {
                                       @Nullable BitSet skyChangedLightSectionFilter, @Nullable BitSet blockChangedLightSectionFilter) {
         var level = LEVEL_CONTEXT.get();
         if (level == null) return;
-        LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z);
+        LevelChunk chunk = level.getChunkSource().getChunkNow(chunkPos.x(), chunkPos.z());
 
         if (chunk == null || !chunk.getPos().equals(chunkPos) || !((PolymerBlockPosStorage) chunk).polymer$hasAny()) {
             return;

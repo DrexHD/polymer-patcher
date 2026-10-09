@@ -74,6 +74,7 @@ public final class ClientDataStorage {
     }
 
     public static void save(ClientDataRegistry registry) throws IOException {
+        Files.createDirectories(DUMP_FILE.getParent());
         Files.writeString(DUMP_FILE, GSON.toJson(registry, ClientDataRegistry.class));
     }
 

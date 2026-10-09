@@ -7,8 +7,8 @@ public class ServerRendererContext extends EntityRendererProvider.Context {
     public ServerRendererContext(ServerEntityRenderDispatcher renderDispatcher, ServerItemModelResolver modelResolver, ServerEntityModelSet entityModelSet) {
         super(
             renderDispatcher,
-            modelResolver,
             null,
+            modelResolver,
             null,
             null,
             entityModelSet,
