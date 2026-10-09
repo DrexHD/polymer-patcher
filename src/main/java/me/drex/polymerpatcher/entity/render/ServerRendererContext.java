@@ -4,11 +4,11 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 
 public class ServerRendererContext extends EntityRendererProvider.Context {
 
-    public ServerRendererContext(ServerEntityRenderDispatcher renderDispatcher, ServerItemModelResolver modelResolver, ServerEntityModelSet entityModelSet) {
+    public ServerRendererContext(ServerEntityRenderDispatcher renderDispatcher, ServerBlockModelResolver blockModelResolver, ServerItemModelResolver itemModelResolver, ServerEntityModelSet entityModelSet) {
         super(
             renderDispatcher,
-            null,
-            modelResolver,
+            blockModelResolver,
+            itemModelResolver,
             null,
             null,
             entityModelSet,

@@ -2,6 +2,7 @@ package me.drex.polymerpatcher.entity;
 
 import me.drex.polymerpatcher.PolymerPatcher;
 import me.drex.polymerpatcher.dump.data.ClientDataRegistry;
+import me.drex.polymerpatcher.entity.render.ServerBlockModelResolver;
 import me.drex.polymerpatcher.entity.render.ServerEntityModelSet;
 import me.drex.polymerpatcher.entity.render.ServerEntityRenderDispatcher;
 import me.drex.polymerpatcher.entity.render.ServerItemModelResolver;
@@ -50,10 +51,11 @@ public class AnimatedEntities {
             bakedModels.put(modelLayerLocation, layerDefinition.bakeRoot());
         });
         var entityModelSet = new ServerEntityModelSet(bakedModels);
-        var renderDispatcher = new ServerEntityRenderDispatcher();
-        var modelResolver = new ServerItemModelResolver();
+        var blockModelResolver = new ServerBlockModelResolver();
+        var itemModelResolver = new ServerItemModelResolver();
+        var renderDispatcher = new ServerEntityRenderDispatcher(blockModelResolver, itemModelResolver);
 
-        ServerRendererContext context = new ServerRendererContext(renderDispatcher, modelResolver, entityModelSet);
+        ServerRendererContext context = new ServerRendererContext(renderDispatcher, blockModelResolver, itemModelResolver, entityModelSet);
 
         registry.entityData.forEach((renderInfo) -> {
             Identifier entityId = BuiltInRegistries.ENTITY_TYPE.getKey(renderInfo.type());

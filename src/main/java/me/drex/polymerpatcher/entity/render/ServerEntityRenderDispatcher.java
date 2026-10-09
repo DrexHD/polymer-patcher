@@ -15,8 +15,8 @@ import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.entity.Entity;
 
 public class ServerEntityRenderDispatcher extends EntityRenderDispatcher {
-    public ServerEntityRenderDispatcher() {
-        super(null, null, null, new ServerItemModelResolver(), null, null, null, null, null, null, null);
+    public ServerEntityRenderDispatcher(ServerBlockModelResolver blockModelResolver, ServerItemModelResolver itemModelResolver) {
+        super(null, null, blockModelResolver, itemModelResolver, null, null, null, null, null, null, null);
     }
 
     @Override
