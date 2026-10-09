@@ -8,6 +8,8 @@ import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.VirtualEntityUtils;
 import eu.pb4.polymer.virtualentity.api.data.DisplayEntityData;
 import eu.pb4.polymer.virtualentity.api.elements.InteractionElement;
+import eu.pb4.polymer.virtualentity.api.elements.BlockDisplayElement;
+import eu.pb4.polymer.virtualentity.api.elements.DisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
 import eu.pb4.polymer.virtualentity.api.elements.VirtualElement;
 import me.drex.polymerpatcher.PolymerPatcher;
@@ -21,9 +23,9 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.util.RandomSource;
@@ -33,8 +35,10 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.MapItemColor;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
+import org.joml.Quaternionfc;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -53,9 +57,11 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
 
     private boolean noTick = true;
 
-    private final List<ItemDisplayElement> activeElements = new ArrayList<>();
+    private final ElementPool<ItemDisplayElement> itemDisplays = new ElementPool<>(
+        ItemDisplayElementUtil::createSimple, this::addElement, this::removeElement);
+    private final ElementPool<BlockDisplayElement> blockDisplays = new ElementPool<>(
+        BlockDisplayElement::new, this::addElement, this::removeElement);
     private final Set<ServerGamePacketListenerImpl> pendingPassengerUpdates = new HashSet<>();
-    public int activeElementIndex = 0;
 
     public SimpleEntityModel(Entity entity, PolyModelInstance<Entity, RenderState, Model> model) {
         this.entity = entity;
@@ -128,24 +134,18 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
 
         RenderState renderState = renderer.createRenderState();
         try {
-            activeElementIndex = 0;
+            itemDisplays.beginFrame();
+            blockDisplays.beginFrame();
             renderer.extractRenderState(entity, renderState, 0);
             ServerSubmitNodeCollector<Entity, RenderState, Model> nodeCollector = new ServerSubmitNodeCollector<>(this);
-            ServerSubmitNodeCollector.ACTIVE_ENTITY.set(this);
-            renderer.submit(renderState, poseStack, nodeCollector, DEFAULT_CAMERA_STATE);
+            ScopedValue.where(ServerSubmitNodeCollector.ACTIVE_ENTITY, this).run(() -> renderer.submit(renderState, poseStack, nodeCollector, DEFAULT_CAMERA_STATE));
         } catch (Throwable e) {
             PolymerPatcher.LOGGER.debug("Failed to render", e);
-        } finally {
-            ServerSubmitNodeCollector.ACTIVE_ENTITY.remove();
         }
 
-        while (activeElements.size() > activeElementIndex) {
-            removeElement(activeElements.removeLast());
-        }
-
-        for (ItemDisplayElement activeElement : activeElements) {
-            activeElement.setGlowing(this.entity.isCurrentlyGlowing());
-        }
+        boolean glowing = entity.isCurrentlyGlowing();
+        itemDisplays.endFrame(element -> element.setGlowing(glowing));
+        blockDisplays.endFrame(element -> element.setGlowing(glowing));
 
         for (var player : pendingPassengerUpdates) {
             if (getWatchingPlayers().contains(player)) sendPassengerPackets(player::send);
@@ -164,71 +164,61 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
 
         boolean redOverlay = (overlayCoords >> 16) == OverlayTexture.RED_OVERLAY_V;
 
-        updateItemDisplayElement(createItemStack(id, redOverlay, texture, modelLayer), matrix4f);
+        updateItemDisplayElement(createItemStack(id, redOverlay, texture, modelLayer), ItemDisplayContext.FIXED, matrix4f);
     }
 
-    public void updateBlock(BlockState blockState, Matrix4f matrix4f) {
-        var randomSource = RandomSource.create(0);
+    public void updateBlock(BlockState blockState, Matrix4f matrix4f, long seed) {
+        if (blockState.getRenderShape() != RenderShape.MODEL) return;
         List<BlockStateModelManager.ModelGetter> modelGetters = BlockStateModelManager.get(blockState);
+        if (modelGetters.isEmpty() && BuiltInRegistries.BLOCK.getKey(blockState.getBlock()).getNamespace().equals(Identifier.DEFAULT_NAMESPACE)) {
+            updateDisplayElement(blockDisplays, matrix4f, element -> element.setBlockState(blockState));
+            return;
+        }
+        var randomSource = RandomSource.create(seed);
 
         for (BlockStateModelManager.ModelGetter modelGetter : modelGetters) {
 
             BlockStateModelManager.ModelData model = modelGetter.getModel(randomSource);
 
-            Matrix4f transformation = new  Matrix4f(matrix4f);
-            transformation.rotate(model.quaternionfc());
-            updateItemDisplayElement(model.stack(), transformation);
+            updateItemDisplayElement(model.stack(), ItemDisplayContext.NONE, blockItemTransformation(matrix4f, model.quaternionfc()));
         }
     }
 
-    public void updateItem(ItemStack itemStack, ItemDisplayContext context, Matrix4f matrix4f) {
-        ItemDisplayElement element = updateItemDisplayElement(itemStack, matrix4f);
-        element.setItemDisplayContext(context);
+    static Matrix4f blockItemTransformation(Matrix4f pose, Quaternionfc rotation) {
+        return new Matrix4f(pose).translate(0.5F, 0.5F, 0.5F).rotate(rotation);
     }
 
-    private ItemDisplayElement updateItemDisplayElement(ItemStack itemStack, Matrix4f matrix4f) {
-        ItemDisplayElement element;
-        if (activeElementIndex >= activeElements.size()) {
-            element = null;
-        } else {
-            element = this.activeElements.get(activeElementIndex);
-        }
-
-        activeElementIndex++;
-
-        if (element == null) {
-            // Show element
-            element = this.createItemDisplayElement(itemStack);
-            this.addElement(element);
-            this.activeElements.add(element);
-            element.setTeleportDuration(0);
-        } else {
-            // Update element
-            element.setTeleportDuration(3);
+    public void updateItemDisplayElement(ItemStack itemStack, ItemDisplayContext context, Matrix4f matrix4f) {
+        updateDisplayElement(itemDisplays, matrix4f, element -> {
             element.setItem(itemStack);
+            element.setItemDisplayContext(context);
             element.getSyncedData().setDirty(DisplayEntityData.Item.ITEM, true);
-        }
-
-        element.setTransformation(matrix4f);
-        element.startInterpolationIfDirty();
-        return element;
+        });
     }
 
-    private ItemDisplayElement createItemDisplayElement(ItemStack itemStack) {
-        var element = ItemDisplayElementUtil.createSimple(itemStack);
+    private <T extends DisplayElement> void updateDisplayElement(ElementPool<T> pool, Matrix4f matrix4f, Consumer<T> update) {
+        pool.next((element, created) -> {
+            if (created) configureDisplayElement(element);
+            update.accept(element);
+            element.setTeleportDuration(created ? 0 : 3);
+            element.setTransformation(matrix4f);
+            element.startInterpolationIfDirty();
+        });
+    }
+
+    private void configureDisplayElement(DisplayElement element) {
         element.setInterpolationDuration(1);
         element.setTeleportDuration(3);
+        element.setDisplaySize(2, 2);
         element.setViewRange(2);
         EntityDimensions dimensions = entity.getDimensions(entity.getPose());
         element.setOffset(new Vec3(0, dimensions.height() / 2, 0));
-        return element;
     }
 
     private ItemStack createItemStack(int id, boolean redOverlay, Identifier texture, ModelLayerLocation modelLayer) {
         Identifier modelPath = PolyModelInstance.partModelId(texture, modelLayer, id);
         ItemStack stack;
-        // TODO use getModel?
-        stack = ItemDisplayElementUtil.getModelCopy(modelPath);
+        stack = ItemDisplayElementUtil.getModel(modelPath).get();
         if (redOverlay) {
             stack.set(DataComponents.MAP_COLOR, new MapItemColor(0xff7e7e));
         } else {

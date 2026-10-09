@@ -36,7 +36,7 @@ import java.util.Map;
 
 public class ServerSubmitNodeCollector<Entity extends net.minecraft.world.entity.Entity, RenderState extends EntityRenderState, Model extends EntityModel<? super RenderState>> implements SubmitNodeCollector {
     private final SimpleEntityModel<Entity, RenderState, Model> entityModel;
-    public static final ThreadLocal<SimpleEntityModel> ACTIVE_ENTITY = new ThreadLocal<>();
+    public static final ScopedValue<SimpleEntityModel> ACTIVE_ENTITY = ScopedValue.newInstance();
 
     public ServerSubmitNodeCollector(SimpleEntityModel<Entity, RenderState, Model> entityModel) {
         this.entityModel = entityModel;
@@ -97,13 +97,13 @@ public class ServerSubmitNodeCollector<Entity extends net.minecraft.world.entity
 
     @Override
     public void submitMovingBlock(PoseStack poseStack, MovingBlockRenderState movingBlockRenderState) {
-
+        entityModel.updateBlock(movingBlockRenderState.blockState, poseStack.last().pose(),
+            movingBlockRenderState.blockState.getSeed(movingBlockRenderState.randomSeedPos));
     }
 
     @Override
     public void submitBlockModel(PoseStack poseStack, RenderType renderType, List<BlockStateModelPart> parts, int[] tintLayers, int lightCoords, int overlayCoords, int outlineColor) {
-        // TODO
-        //entityModel.updateBlock(blockState, poseStack.last().pose());
+        // BlockModelRenderState is intercepted before it becomes baked model parts.
     }
 
     @Override

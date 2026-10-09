@@ -30,9 +30,8 @@ public abstract class ItemStackRenderStateMixin implements IItemStackRenderState
 
     @Inject(method = "submit", at = @At("HEAD"))
     public void updateItem(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int i, int j, int k, CallbackInfo ci) {
-        SimpleEntityModel simpleEntityModel = ServerSubmitNodeCollector.ACTIVE_ENTITY.get();
-        if (simpleEntityModel != null && polymer_patcher$Item != null) {
-            simpleEntityModel.updateItem(polymer_patcher$Item, displayContext, poseStack.last().pose());
-        }
+        if (!ServerSubmitNodeCollector.ACTIVE_ENTITY.isBound() || polymer_patcher$Item == null) return;
+        SimpleEntityModel model = ServerSubmitNodeCollector.ACTIVE_ENTITY.get();
+        model.updateItemDisplayElement(polymer_patcher$Item, displayContext, poseStack.last().pose());
     }
 }
