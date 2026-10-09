@@ -21,8 +21,7 @@ public class ClientClassLoader {
 
     public static void init() throws IOException, ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) return;
-        String version = FabricLoader.getInstance().getModContainer("minecraft").orElseThrow()
-            .getMetadata().getVersion().getFriendlyString();
+        String version = FabricLoader.getInstance().getRawGameVersion();
         Path cache = PolymerPatcher.POLYMER_PATCHER_PATH.resolve("client-cache");
 
         Files.createDirectories(cache);

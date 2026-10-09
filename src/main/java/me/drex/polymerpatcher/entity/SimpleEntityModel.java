@@ -4,9 +4,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import eu.pb4.factorytools.api.block.model.generic.BlockStateModelManager;
 import eu.pb4.factorytools.api.virtualentity.ItemDisplayElementUtil;
 import eu.pb4.factorytools.api.virtualentity.emuvanilla.poly.LeadAttachmentElement;
-import eu.pb4.factorytools.api.virtualentity.emuvanilla.poly.RideAttachmentElement;
-import eu.pb4.factorytools.mixin.LivingEntityAccessor;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
+import eu.pb4.polymer.virtualentity.api.VirtualEntityUtils;
 import eu.pb4.polymer.virtualentity.api.data.DisplayEntityData;
 import eu.pb4.polymer.virtualentity.api.elements.InteractionElement;
 import eu.pb4.polymer.virtualentity.api.elements.ItemDisplayElement;
@@ -22,11 +21,14 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntityDimensions;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.MapItemColor;
@@ -34,20 +36,25 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
 
 public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity, RenderState extends EntityRenderState, Model extends EntityModel<? super RenderState>> extends ElementHolder {
     private static final CameraRenderState DEFAULT_CAMERA_STATE = new CameraRenderState();
     public final InteractionElement interaction;
     public final LeadAttachmentElement leadAttachment = new LeadAttachmentElement();
-    public final RideAttachmentElement rideAttachment = new RideAttachmentElement();
+    private final List<RidingSeatElement> seats = new ArrayList<>();
+    private List<net.minecraft.world.entity.Entity> riders = List.of();
     protected final Entity entity;
     private final EntityRenderer<Entity, RenderState> renderer;
 
     private boolean noTick = true;
-    private float height = -1;
 
     private final List<ItemDisplayElement> activeElements = new ArrayList<>();
+    private final Set<ServerGamePacketListenerImpl> pendingPassengerUpdates = new HashSet<>();
     public int activeElementIndex = 0;
 
     public SimpleEntityModel(Entity entity, PolyModelInstance<Entity, RenderState, Model> model) {
@@ -57,8 +64,9 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
         this.interaction = new InteractionElement(interaction);
         this.interaction.setSendPositionUpdates(false);
         this.addElement(leadAttachment);
-        this.addElement(rideAttachment);
-        this.addPassengerElement(this.interaction);
+        if (!(entity instanceof AbstractBoat)) {
+            this.addPassengerElement(this.interaction);
+        }
     }
 
     @Override
@@ -70,21 +78,47 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
     }
 
     @Override
+    protected void startWatchingExtraPackets(ServerGamePacketListenerImpl player, Consumer<Packet<ClientGamePacketListener>> consumer) {
+        super.startWatchingExtraPackets(player, consumer);
+        sendPassengerPackets(consumer);
+        pendingPassengerUpdates.add(player);
+    }
+
+    public void sendPassengerPackets(Consumer<? super Packet<ClientGamePacketListener>> consumer) {
+        updateSeats();
+        consumer.accept(VirtualEntityUtils.createClientboundSetPassengersPacket(entity.getId(), getAttachedPassengerEntityIds()));
+        for (int i = 0; i < seats.size(); i++) {
+            consumer.accept(VirtualEntityUtils.createClientboundSetPassengersPacket(
+                seats.get(i).getEntityId(), new int[]{riders.get(i).getId()}));
+        }
+    }
+
+    private boolean updateSeats() {
+        var passengers = entity.getPassengers();
+        boolean changed = !riders.equals(passengers);
+        riders = passengers;
+        while (seats.size() > passengers.size()) {
+            removeElement(seats.removeLast());
+        }
+        for (int i = 0; i < passengers.size(); i++) {
+            if (i == seats.size()) {
+                seats.add(addElement(new RidingSeatElement(entity, passengers.get(i))));
+            }
+            seats.get(i).update(entity, passengers.get(i));
+        }
+        return changed;
+    }
+
+    @Override
     protected void onTick() {
         noTick = false;
-        if (this.entity instanceof LivingEntity livingEntity) {
-            this.rideAttachment.setMaxHealth(livingEntity.getMaxHealth());
-            this.rideAttachment.getSyncedData().set(LivingEntityAccessor.getDATA_HEALTH_ID(), livingEntity.getHealth());
-        }
         this.interaction.setCustomName(this.entity.getCustomName());
         this.interaction.setCustomNameVisible(this.entity.isCustomNameVisible());
-        this.rideAttachment.setYaw(entity.getYRot());
-        if (entity.getBbHeight() != this.height) {
-            this.height = entity.getBbHeight();
-            this.interaction.setSize(entity.getBbWidth(), this.height);
-            this.leadAttachment.setOffset(new Vec3(0, this.height / 2, 0));
-            this.rideAttachment.setOffset(new Vec3(0, this.height, 0));
-        }
+        this.interaction.setSize(entity.getBbWidth(), entity.getBbHeight());
+        this.leadAttachment.setOffset(new Vec3(0, entity.getBbHeight() / 2, 0));
+        if (updateSeats()) sendPassengerPackets(this::sendPacket);
+
+        this.interaction.setOnFire(this.entity.isOnFire());
 
         PoseStack poseStack = new PoseStack();
 
@@ -94,10 +128,10 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
 
         RenderState renderState = renderer.createRenderState();
         try {
+            activeElementIndex = 0;
             renderer.extractRenderState(entity, renderState, 0);
             ServerSubmitNodeCollector<Entity, RenderState, Model> nodeCollector = new ServerSubmitNodeCollector<>(this);
             ServerSubmitNodeCollector.ACTIVE_ENTITY.set(this);
-            activeElementIndex = 0;
             renderer.submit(renderState, poseStack, nodeCollector, DEFAULT_CAMERA_STATE);
         } catch (Throwable e) {
             PolymerPatcher.LOGGER.debug("Failed to render", e);
@@ -108,6 +142,15 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
         while (activeElements.size() > activeElementIndex) {
             removeElement(activeElements.removeLast());
         }
+
+        for (ItemDisplayElement activeElement : activeElements) {
+            activeElement.setGlowing(this.entity.isCurrentlyGlowing());
+        }
+
+        for (var player : pendingPassengerUpdates) {
+            if (getWatchingPlayers().contains(player)) sendPassengerPackets(player::send);
+        }
+        pendingPassengerUpdates.clear();
 
         super.onTick();
     }

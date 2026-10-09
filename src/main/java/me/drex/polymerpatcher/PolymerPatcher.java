@@ -1,5 +1,6 @@
 package me.drex.polymerpatcher;
 
+import eu.pb4.polymer.core.api.entity.PolymerEntityUtils;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import eu.pb4.polymer.resourcepack.extras.api.ResourcePackExtras;
 import eu.pb4.polymer.resourcepack.extras.api.format.item.ItemAsset;
@@ -11,6 +12,7 @@ import me.drex.polymerpatcher.config.ConfigManager;
 import me.drex.polymerpatcher.dump.data.ClientDataRegistry;
 import me.drex.polymerpatcher.dump.data.ClientDataStorage;
 import me.drex.polymerpatcher.entity.AnimatedEntities;
+import me.drex.polymerpatcher.entity.AutomaticPolymerEntity;
 import me.drex.polymerpatcher.resources.ResourceHelper;
 import me.drex.polymerpatcher.resources.ResourcePackGenerator;
 import net.fabricmc.api.DedicatedServerModInitializer;
@@ -18,6 +20,8 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +50,8 @@ public class PolymerPatcher implements DedicatedServerModInitializer {
         PolymerResourcePackUtils.RESOURCE_PACK_CREATION_EVENT.register(ResourceHelper::init);
         ResourcePackGenerator.setup();
         PolymerResourcePackUtils.addModAssets(MOD_ID);
+        ResourcePackExtras.forDefault().addBridgedModelsFolder(ResourceHelper.ACACIA_BOAT_TEXTURE, (id, builder) ->
+            new ItemAsset(new BasicItemModel(id, List.of(new MapColorTintSource(0xFFFFFF))), new ItemAsset.Properties(true, true)));
         ColorMapHelper.init();
 
         clientDataRegistry = ClientDataStorage.load();
@@ -55,6 +61,7 @@ public class PolymerPatcher implements DedicatedServerModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
             PolymerPatcherCommand.register(dispatcher)
         );
+        PolymerEntityUtils.registerPolymerEntityConstructor(EntityType.ACACIA_BOAT, AutomaticPolymerEntity::new);
     }
 
     public static void setupModAssets(String modId) {

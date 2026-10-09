@@ -23,6 +23,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 
 public class ResourceHelper {
+    public static final Identifier ACACIA_BOAT_TEXTURE = Identifier.withDefaultNamespace("entity/boat/acacia");
+    public static final Identifier ORIGINAL_ACACIA_BOAT_TEXTURE = PolymerPatcher.id("entity/boat/acacia_original");
     public static final AssetContainer GLOBAL_ASSETS = ResourceLocatorApi.createGlobalAssetContainer();
     private static final FileSystem vanillaFilesystem;
 
@@ -54,6 +56,10 @@ public class ResourceHelper {
         if (supplier != null) {
             return supplier;
         }
+        return getVanillaAsset(namespace, path);
+    }
+
+    public static IoSupplier<InputStream> getVanillaAsset(String namespace, String path) {
         var vanillaPath = vanillaFilesystem.getPath("/assets/" + namespace + "/" + path);
         if (Files.exists(vanillaPath)) {
             return IoSupplier.create(vanillaPath);

@@ -7,6 +7,7 @@ import eu.pb4.polymer.resourcepack.extras.api.format.model.ModelAsset;
 import eu.pb4.polymer.resourcepack.extras.api.format.model.ModelElement;
 import eu.pb4.polymer.resourcepack.extras.api.format.model.ModelTransformation;
 import me.drex.polymerpatcher.duck.IModelPart;
+import me.drex.polymerpatcher.resources.ResourceHelper;
 import me.drex.polymerpatcher.mixin.client.ModelPartAccessor;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.ModelLayerLocation;
@@ -41,7 +42,8 @@ public record PolyModelInstance<Entity extends net.minecraft.world.entity.Entity
 
     public void generateAssets(BiConsumer<String, byte[]> writer, AtlasAsset.Builder atlas) {
         if (texture == null || modelLayer == null) return;
-        atlas.single(texture);
+        var sprite = texture.equals(ResourceHelper.ACACIA_BOAT_TEXTURE) ? ResourceHelper.ORIGINAL_ACACIA_BOAT_TEXTURE : texture;
+        atlas.single(sprite);
 
         int id = 0;
 
@@ -52,7 +54,7 @@ public record PolyModelInstance<Entity extends net.minecraft.world.entity.Entity
 
             var modelId = partModelId(texture, modelLayer, id++);
             var model = ModelAsset.builder();
-            model.texture("txt", texture);
+            model.texture("txt", sprite);
             model.textureReference("particle", "txt");
 
             for (ModelPart.Cube cuboid : ((ModelPartAccessor) (Object) part).getCubes()) {

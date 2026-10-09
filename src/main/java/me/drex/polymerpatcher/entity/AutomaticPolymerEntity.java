@@ -5,12 +5,11 @@ import eu.pb4.polymer.virtualentity.api.VirtualEntityUtils;
 import eu.pb4.polymer.virtualentity.api.attachment.IdentifiedUniqueEntityAttachment;
 import eu.pb4.polymer.virtualentity.api.attachment.UniqueIdentifiableAttachment;
 import eu.pb4.polymer.virtualentity.api.data.DisplayEntityData;
-import it.unimi.dsi.fastutil.ints.IntList;
+import eu.pb4.polymer.virtualentity.api.data.EntityData;
 import me.drex.polymerpatcher.PolymerPatcher;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundAnimatePacket;
-import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket;
 import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -27,6 +26,11 @@ import java.util.function.Function;
 public record AutomaticPolymerEntity<T extends Entity>(T entity) implements PolymerEntity {
     public static final Identifier MODEL = PolymerPatcher.id("model");
 
+    public static boolean isServerControlled(Entity entity) {
+        return !entity.level().isClientSide() && entity.getControllingPassenger() instanceof ServerPlayer
+            && PolymerEntity.get(entity) instanceof AutomaticPolymerEntity;
+    }
+
     public AutomaticPolymerEntity {
         Function<Entity, ? extends SimpleEntityModel<?, ?, ?>> factory = (Function<Entity, ? extends SimpleEntityModel<?, ?, ?>>) AnimatedEntities.ENTITY_FACTORIES.get(entity.getType());
         if (factory != null) {
@@ -38,10 +42,9 @@ public record AutomaticPolymerEntity<T extends Entity>(T entity) implements Poly
     @Override
     public EntityType<?> getPolymerEntityType(PacketContext packetContext) {
         if (entity instanceof AbstractBoat) {
-            // TODO Ensure acacia boat gets custom model
             return EntityType.ACACIA_BOAT;
         }
-        return EntityType.ITEM_DISPLAY;
+        return EntityType.BLOCK_DISPLAY;
     }
 
     @Override
@@ -57,22 +60,21 @@ public record AutomaticPolymerEntity<T extends Entity>(T entity) implements Poly
         if (packet instanceof ClientboundAnimatePacket) {
             return;
         }
-        if (packet instanceof ClientboundSetPassengersPacket packet1 && packet1.getPassengers().length != 0) {
-            var model = (SimpleEntityModel) UniqueIdentifiableAttachment.get(entity, MODEL).holder();
-            consumer.accept(VirtualEntityUtils.createClientboundSetPassengersPacket(entity.getId(), IntList.of(model.interaction.getEntityId())));
-            consumer.accept(VirtualEntityUtils.createClientboundSetPassengersPacket(model.interaction.getEntityId(), packet1.getPassengers()));
+        UniqueIdentifiableAttachment attachment = UniqueIdentifiableAttachment.get(entity, MODEL);
+        if (attachment == null) {
+            PolymerEntity.super.onEntityPacketSent(consumer, packet);
+            return;
+        }
+        var model = (SimpleEntityModel<?, ?, ?>) attachment.holder();
+        if (packet instanceof ClientboundSetPassengersPacket) {
+            model.sendPassengerPackets(consumer);
             return;
         }
 
         if (packet instanceof ClientboundSetEntityLinkPacket packet1) {
-            var model = (SimpleEntityModel) UniqueIdentifiableAttachment.get(entity, MODEL).holder();
             consumer.accept(VirtualEntityUtils.createClientboundSetEntityLinkPacket(model.leadAttachment.getEntityId(), packet1.getDestId()));
-            return;
-        }
-        if (packet instanceof ClientboundSetEntityDataPacket packet1) {
             return;
         }
         PolymerEntity.super.onEntityPacketSent(consumer, packet);
     }
 }
-

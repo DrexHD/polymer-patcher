@@ -1,6 +1,7 @@
 package me.drex.polymerpatcher.entity;
 
 import me.drex.polymerpatcher.PolymerPatcher;
+import me.drex.polymerpatcher.resources.ResourceHelper;
 import me.drex.polymerpatcher.dump.data.ClientDataRegistry;
 import me.drex.polymerpatcher.entity.render.ServerBlockModelResolver;
 import me.drex.polymerpatcher.entity.render.ServerEntityModelSet;
@@ -8,10 +9,13 @@ import me.drex.polymerpatcher.entity.render.ServerEntityRenderDispatcher;
 import me.drex.polymerpatcher.entity.render.ServerItemModelResolver;
 import me.drex.polymerpatcher.entity.render.ServerRendererContext;
 import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.model.object.boat.BoatModel;
+import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.BoatRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -35,7 +39,7 @@ public class AnimatedEntities {
     protected static final IdentityHashMap<EntityType<?>, Function<? extends Entity, ? extends SimpleEntityModel<?, ?, ?>>> ENTITY_FACTORIES = new IdentityHashMap<>();
 
     public static <Entity extends net.minecraft.world.entity.Entity, RenderState extends EntityRenderState, Model extends EntityModel<? super RenderState>> void registerEntity(
-        EntityType<Entity> type,
+        EntityType<? extends Entity> type,
         EntityRenderer<Entity, RenderState> renderer, List<ModelPart> allParts, @Nullable ModelLayerLocation modelLayer, @Nullable Identifier texture
     ) {
         PolyModelInstance<Entity, RenderState, Model> defaultModel = PolyModelInstance.create(renderer, allParts, modelLayer, texture);
@@ -50,6 +54,8 @@ public class AnimatedEntities {
         registry.modelLayers.forEach((modelLayerLocation, layerDefinition) -> {
             bakedModels.put(modelLayerLocation, layerDefinition.bakeRoot());
         });
+        bakedModels.put(ModelLayers.ACACIA_BOAT, BoatModel.createBoatModel().bakeRoot());
+        bakedModels.computeIfAbsent(ModelLayers.BOAT_WATER_PATCH, layer -> BoatModel.createWaterPatch().bakeRoot());
         var entityModelSet = new ServerEntityModelSet(bakedModels);
         var blockModelResolver = new ServerBlockModelResolver();
         var itemModelResolver = new ServerItemModelResolver();
@@ -79,6 +85,8 @@ public class AnimatedEntities {
                 }
             }
         });
+        registerEntity(EntityType.ACACIA_BOAT, new BoatRenderer(context, ModelLayers.ACACIA_BOAT),
+            bakedModels.get(ModelLayers.ACACIA_BOAT).getAllParts(), ModelLayers.ACACIA_BOAT, ResourceHelper.ACACIA_BOAT_TEXTURE);
     }
 
     @SuppressWarnings("rawtypes")

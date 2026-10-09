@@ -4,7 +4,6 @@ package me.drex.polymerpatcher.resources;
 import eu.pb4.factorytools.api.block.model.generic.BlockStateModelManager;
 import eu.pb4.factorytools.api.resourcepack.ModelModifiers;
 import eu.pb4.polymer.resourcepack.api.AssetPaths;
-import eu.pb4.polymer.resourcepack.api.PackResource;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import eu.pb4.polymer.resourcepack.api.ResourcePackBuilder;
 import eu.pb4.polymer.resourcepack.extras.api.format.atlas.AtlasAsset;
@@ -20,10 +19,12 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 
 import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import java.util.*;
 import java.util.function.Predicate;
-
-import static me.drex.polymerpatcher.PolymerPatcher.id;
 
 public class ResourcePackGenerator {
     private static final Vec3 EXPANSION = new Vec3(0.08, 0.08, 0.08);
@@ -72,6 +73,7 @@ public class ResourcePackGenerator {
     private static void build(ResourcePackBuilder builder) {
         PolymerPatcher.LOGGER.info("Generating resource pack for {}...", Arrays.toString(PolymerPatcher.PATCHED_MODS.toArray()));
         var atlas = AtlasAsset.builder();
+        modifyAcaciaBoatTextures(builder);
         builder.forEachResource((path, packResource) -> {
             String[] parts = path.split("/", 4);
             if (parts.length < 4) return;
@@ -117,6 +119,21 @@ public class ResourcePackGenerator {
         SIGNS.forEach(id -> ModelModifiers.createSignModel(builder, id.getNamespace(), id.getPath(), atlas));
 
         builder.addData("assets/minecraft/atlases/blocks.json", atlas.build());
+    }
+
+    private static void modifyAcaciaBoatTextures(ResourcePackBuilder builder) {
+        String path = "textures/" + ResourceHelper.ACACIA_BOAT_TEXTURE.getPath() + ".png";
+        var source = ResourceHelper.getVanillaAsset(Identifier.DEFAULT_NAMESPACE, path);
+        try (var stream = source.get()) {
+            byte[] original = stream.readAllBytes();
+            var transparent = new ByteArrayOutputStream();
+            ImageIO.write(new BufferedImage(128, 64, BufferedImage.TYPE_INT_ARGB), "png", transparent);
+            builder.addData("assets/" + ResourceHelper.ORIGINAL_ACACIA_BOAT_TEXTURE.getNamespace() + "/textures/"
+                + ResourceHelper.ORIGINAL_ACACIA_BOAT_TEXTURE.getPath() + ".png", original);
+            builder.addData("assets/minecraft/" + path, transparent.toByteArray());
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to prepare acacia boat textures", e);
+        }
     }
 
     private static void expandModelAsset(ModelAsset asset, String path, ResourcePackBuilder builder) {
