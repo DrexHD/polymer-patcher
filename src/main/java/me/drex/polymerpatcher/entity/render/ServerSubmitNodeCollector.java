@@ -69,6 +69,11 @@ public class ServerSubmitNodeCollector<Entity extends net.minecraft.world.entity
 
     @Override
     public <S> void submitModel(net.minecraft.client.model.Model<? super S> model, S object, PoseStack poseStack, RenderType renderType, int lightCoords, int overlayCoords, int tintedColor, @Nullable TextureAtlasSprite textureAtlasSprite, int l, ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay) {
+        model.setupAnim(object);
+        renderWithTexture(renderType, overlayCoords, () -> model.renderToBuffer(poseStack, NoOpVertexConsumer.INSTANCE, lightCoords, overlayCoords, tintedColor));
+    }
+
+    private void renderWithTexture(RenderType renderType, int overlayCoords, Runnable render) {
         RenderSetup renderSetup = ((RenderTypeAccessor) renderType).getState();
         Map<String, RenderSetup.TextureBinding> textures = ((RenderSetupAccessor) (Object) renderSetup).polymer_patcher$textures();
         for (Map.Entry<String, RenderSetup.TextureBinding> stringTextureBindingEntry : textures.entrySet()) {
@@ -76,14 +81,18 @@ public class ServerSubmitNodeCollector<Entity extends net.minecraft.world.entity
             String path = texture.getPath().replace("textures/", "").replace(".png", "");
 
             CubeConsumer.CONSUMER.set((part, matrix4f, hidden) -> entityModel.updateModelPart(part, matrix4f, overlayCoords, texture.withPath(path), hidden));
-            model.renderToBuffer(poseStack, NoOpVertexConsumer.INSTANCE, lightCoords, overlayCoords, tintedColor);
-            CubeConsumer.CONSUMER.remove();
+            try {
+                render.run();
+            } finally {
+                CubeConsumer.CONSUMER.remove();
+            }
             break;
         }
     }
 
     @Override
     public void submitModelPart(ModelPart modelPart, PoseStack poseStack, @NotNull RenderType renderType, int i, int j, @Nullable TextureAtlasSprite textureAtlasSprite, boolean bl, boolean bl2, int k, ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay, int l) {
+        renderWithTexture(renderType, j, () -> modelPart.render(poseStack, NoOpVertexConsumer.INSTANCE, i, j, k));
     }
 
     @Override

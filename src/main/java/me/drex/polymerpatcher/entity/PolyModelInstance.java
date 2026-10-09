@@ -50,7 +50,7 @@ public record PolyModelInstance<Entity extends net.minecraft.world.entity.Entity
             ((IModelPart) (Object) part).polymer_patcher$setId(id);
             ((IModelPart) (Object) part).polymer_patcher$setModelLayerLocation(modelLayer);
 
-            var modelId = texture.withSuffix("/" + modelLayer.layer() + "/part_" + (id++));
+            var modelId = partModelId(texture, modelLayer, id++);
             var model = ModelAsset.builder();
             model.texture("txt", texture);
             model.textureReference("particle", "txt");
@@ -99,6 +99,11 @@ public record PolyModelInstance<Entity extends net.minecraft.world.entity.Entity
 
             writer.accept(AssetPaths.model(modelId) + ".json", model.build().toBytes());
         }
+    }
+
+    public static Identifier partModelId(Identifier texture, ModelLayerLocation modelLayer, int id) {
+        return texture.withSuffix("/" + modelLayer.model().getNamespace() + "/" + modelLayer.model().getPath()
+            + "/" + modelLayer.layer() + "/part_" + id);
     }
 
     private static float clampUv(float uv) {

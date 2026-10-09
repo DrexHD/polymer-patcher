@@ -14,13 +14,10 @@ import eu.pb4.polymer.virtualentity.api.elements.VirtualElement;
 import me.drex.polymerpatcher.PolymerPatcher;
 import me.drex.polymerpatcher.duck.IModelPart;
 import me.drex.polymerpatcher.entity.render.ServerSubmitNodeCollector;
-import me.drex.polymerpatcher.mixin.client.AbstractBoatRendererAccessor;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.LivingEntityRenderer;
-import net.minecraft.client.renderer.entity.state.BoatRenderState;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -98,12 +95,6 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
         RenderState renderState = renderer.createRenderState();
         try {
             renderer.extractRenderState(entity, renderState, 0);
-            if (renderer instanceof LivingEntityRenderer livingEntityRenderer) {
-                livingEntityRenderer.getModel().setupAnim(renderState);
-            } else if (renderer instanceof AbstractBoatRendererAccessor abstractBoatRenderer) {
-                abstractBoatRenderer.invokeModel().setupAnim((BoatRenderState) renderState);
-            }
-
             ServerSubmitNodeCollector<Entity, RenderState, Model> nodeCollector = new ServerSubmitNodeCollector<>(this);
             ServerSubmitNodeCollector.ACTIVE_ENTITY.set(this);
             activeElementIndex = 0;
@@ -191,7 +182,7 @@ public class SimpleEntityModel<Entity extends net.minecraft.world.entity.Entity,
     }
 
     private ItemStack createItemStack(int id, boolean redOverlay, Identifier texture, ModelLayerLocation modelLayer) {
-        Identifier modelPath = texture.withSuffix("/" + modelLayer.layer() + "/part_" + id);
+        Identifier modelPath = PolyModelInstance.partModelId(texture, modelLayer, id);
         ItemStack stack;
         // TODO use getModel?
         stack = ItemDisplayElementUtil.getModelCopy(modelPath);
