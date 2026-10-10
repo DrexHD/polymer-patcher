@@ -5,7 +5,6 @@ import eu.pb4.polymer.virtualentity.api.VirtualEntityUtils;
 import eu.pb4.polymer.virtualentity.api.attachment.IdentifiedUniqueEntityAttachment;
 import eu.pb4.polymer.virtualentity.api.attachment.UniqueIdentifiableAttachment;
 import eu.pb4.polymer.virtualentity.api.data.DisplayEntityData;
-import eu.pb4.polymer.virtualentity.api.data.EntityData;
 import me.drex.polymerpatcher.PolymerPatcher;
 import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.network.protocol.Packet;

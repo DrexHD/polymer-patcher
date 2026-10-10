@@ -187,15 +187,22 @@ public record AutomaticFactoryBlock(
                 }
             }
             Set<BlockModelType> blockModelTypes = pickBlockModelTypeCandidate(id, originalState, blockModelTypeCandidates);
-            for (BlockModelType blockModelType : blockModelTypes) {
-                requiresElementHolder.add(originalState);
-                var state = PolymerBlockResourceUtils.requestEmpty(blockModelType);
-                PolymerPatcher.LOGGER.debug("Mapping blockstate {} -> {} ({} no variants left)", originalState, state, blockModelType);
-                if (blockModelType == BlockModelType.FULL_BLOCK) {
-                    return Blocks.BARRIER.defaultBlockState();
-                }
-                return state;
+
+            BlockModelType blockModelType;
+            if (blockModelTypes.contains(BlockModelType.PLANT)) {
+                blockModelType = BlockModelType.PLANT;
+            } else if (!blockModelTypes.isEmpty()) {
+                blockModelType = blockModelTypes.iterator().next();
+            } else {
+                return null;
             }
+            requiresElementHolder.add(originalState);
+            var state = PolymerBlockResourceUtils.requestEmpty(blockModelType);
+            PolymerPatcher.LOGGER.debug("Mapping blockstate {} -> {} ({} no variants left)", originalState, state, blockModelType);
+            if (blockModelType == BlockModelType.FULL_BLOCK) {
+                return Blocks.BARRIER.defaultBlockState();
+            }
+            return state;
         }
         return null;
     }
